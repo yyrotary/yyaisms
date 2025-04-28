@@ -5,8 +5,8 @@ import Link from 'next/link';
 import Webcam from 'react-webcam';
 import { useRouter } from 'next/navigation';
 import styles from './camera.module.css';
-import axios from 'axios';
 import { extractBusinessCardInfo, preprocessImage } from '@/utils/geminiApi';
+import Image from 'next/image';
 
 export default function CameraPage() {
   const webcamRef = useRef<Webcam>(null);
@@ -17,8 +17,6 @@ export default function CameraPage() {
   const [cameraPermission, setCameraPermission] = useState<boolean | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isZooming, setIsZooming] = useState(false);
-  const [isFocusing, setIsFocusing] = useState(false);
-  const [focusPoint, setFocusPoint] = useState<{x: number, y: number} | null>(null);
   const [showFocusIndicator, setShowFocusIndicator] = useState(false);
   const [focusPosition, setFocusPosition] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
   const focusTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -46,7 +44,6 @@ export default function CameraPage() {
     website: '',
     other: '',
   });
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [processingImage, setProcessingImage] = useState(false);
   const [isVerticalCard, setIsVerticalCard] = useState(false);
@@ -55,6 +52,7 @@ export default function CameraPage() {
   const [flashAvailable, setFlashAvailable] = useState<boolean>(false);
   const [currentFacingMode, setCurrentFacingMode] = useState<'environment' | 'user'>('environment');
   const [streamActive, setStreamActive] = useState(true);
+  const [controlsVisible, setControlsVisible] = useState(true);
 
   // 모바일 기기 감지
   useEffect(() => {
@@ -87,14 +85,15 @@ export default function CameraPage() {
         console.log('사용 가능한 카메라:', videoDevices);
         setAvailableCameras(videoDevices);
         
-        // 'camera2 0'이 포함된 카메라를 우선적으로 선택
-        const camera2Device = videoDevices.find(device => 
+        // 'back 2 0' 또는 'camera2 0'이 포함된 카메라를 우선적으로 선택
+        const back2Device = videoDevices.find(device => 
+          device.label.toLowerCase().includes('back 2 0') || 
           device.label.toLowerCase().includes('camera2 0')
         );
         
-        if (camera2Device) {
-          console.log('Camera2 0 발견:', camera2Device.label);
-          setSelectedCamera(camera2Device.deviceId);
+        if (back2Device) {
+          console.log('백 2 0 카메라 발견:', back2Device.label);
+          setSelectedCamera(back2Device.deviceId);
           setCurrentFacingMode('environment');
         } else {
           // 후면 카메라 우선 탐색 (기존 로직 유지)
@@ -112,10 +111,11 @@ export default function CameraPage() {
             
             // 키워드 우선순위
             const keywordGroups = [
-              ['facing back', 'back camera'], // 명시적인 후면 카메라 표시
+              ['back 2', 'rear 2'], // 'back 2 0'에 가까운 키워드 우선
+              ['back camera', 'facing back'], // 명시적인 후면 카메라 표시
               ['back', '후면', 'environment'], // 일반적인 후면 카메라 표시
-              ['0', 'camera 0', 'camera2 0'], // 일부 기기에서 후면 카메라 인덱스
-              ['1', 'camera 1', 'camera2 1']  // 또 다른 가능한 인덱스
+              ['camera 0', 'camera2'], // 일부 기기에서 후면 카메라 인덱스
+              ['0', '1', 'camera 1'] // 또 다른 가능한 인덱스
             ];
             
             // 각 키워드 그룹에 대해 카메라 검색
@@ -143,6 +143,17 @@ export default function CameraPage() {
         // 스트림 해제
         stream.getTracks().forEach(track => track.stop());
         setCameraPermission(true);
+        
+        // 카메라 초기화가 잘 됐는지 확인을 위해 잠시 후 스트림 재시작
+        setTimeout(() => {
+          console.log('초기 스트림 활성화 재설정');
+          setStreamActive(false);
+          
+          // 조금 더 기다린 후 다시 활성화
+          setTimeout(() => {
+            setStreamActive(true);
+          }, 500);
+        }, 1000);
       } catch (err) {
         console.error("카메라 접근이 거부되었습니다:", err);
         setCameraPermission(false);
@@ -161,7 +172,6 @@ export default function CameraPage() {
     
     try {
       // 현재 설정 확인
-      const settings = track.getSettings();
       const capabilities = track.getCapabilities();
       
       // 플래시 지원 확인
@@ -175,7 +185,7 @@ export default function CameraPage() {
       
       // 플래시 설정 적용
       const constraints = {
-        advanced: [{ }] as any
+        advanced: [{ }] as Record<string, unknown>
       };
       
       constraints.advanced[0].torch = newMode === 'on';
@@ -212,15 +222,29 @@ export default function CameraPage() {
             } else {
               setFlashAvailable(false);
             }
+            
+            console.log('카메라 스트림 활성화 완료');
           } catch (e) {
             console.log('카메라 기능 확인 오류:', e);
           }
+        } else {
+          console.log('비디오 스트림이 로드되지 않았습니다');
         }
       };
       
       // 비디오 로드 완료 시 호출
       videoRef.current.onloadedmetadata = checkCapabilities;
-
+      
+      // 비디오 스트림 에러 발생 시
+      videoRef.current.onerror = (e) => {
+        console.error('비디오 스트림 에러 발생:', e);
+        // 스트림 재시작 시도
+        setStreamActive(false);
+        setTimeout(() => {
+          setStreamActive(true);
+        }, 500);
+      };
+      
       // 비디오 요소에 터치/클릭 이벤트 리스너 추가
       const video = videoRef.current;
       
@@ -249,7 +273,6 @@ export default function CameraPage() {
         // 포커스 위치 설정 및 표시
         setFocusPosition({ x: clientX - videoRect.left, y: clientY - videoRect.top });
         setShowFocusIndicator(true);
-        setIsFocusing(true);
         
         // 이전 타임아웃 제거
         if (focusTimeoutRef.current) {
@@ -259,7 +282,6 @@ export default function CameraPage() {
         // 포커스 표시 시간 설정
         focusTimeoutRef.current = setTimeout(() => {
           setShowFocusIndicator(false);
-          setIsFocusing(false);
         }, 1500);
         
         // 실제 장치가 포커스를 지원하는 경우 실행
@@ -302,8 +324,6 @@ export default function CameraPage() {
                   
                   constraints.advanced[0].focusMode = "manual";
                   constraints.advanced[0].pointsOfInterest = points;
-                  
-                  setFocusPoint({ x, y });
                   
                   track.applyConstraints(constraints)
                     .then(() => {
@@ -376,8 +396,6 @@ export default function CameraPage() {
       let initialDistance = 0;
       let initialZoom = zoomLevel;
       let lastTapTime = 0;
-      let zoomPointX = 0;
-      let zoomPointY = 0;
       
       const handleTouchStart = (e: TouchEvent) => {
         // 더블 탭 감지 (빠른 줌인/아웃)
@@ -392,9 +410,9 @@ export default function CameraPage() {
           const videoRect = videoRef.current?.getBoundingClientRect();
           
           if (videoRect) {
-            // 더블 탭 위치를 중심으로 줌
-            zoomPointX = (touch.clientX - videoRect.left) / videoRect.width;
-            zoomPointY = (touch.clientY - videoRect.top) / videoRect.height;
+            // 더블 탭 위치 계산 (사용은 하지 않지만 나중에 확장성을 위해 계산은 유지)
+            const pointX = (touch.clientX - videoRect.left) / videoRect.width;
+            const pointY = (touch.clientY - videoRect.top) / videoRect.height;
             
             if (zoomLevel > 1.5) {
               // 줌 아웃
@@ -419,15 +437,9 @@ export default function CameraPage() {
           );
           initialZoom = zoomLevel;
           
-          // 핀치 중심점 계산
+          // 핀치 중심점 계산 (확장성을 위해 계산은 유지)
           const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
           const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-          
-          const videoRect = videoRef.current?.getBoundingClientRect();
-          if (videoRect) {
-            zoomPointX = (midX - videoRect.left) / videoRect.width;
-            zoomPointY = (midY - videoRect.top) / videoRect.height;
-          }
           
           setIsZooming(true);
           e.preventDefault();
@@ -483,7 +495,7 @@ export default function CameraPage() {
         }
       };
     }
-  }, [webcamRef.current, zoomLevel]);
+  }, [zoomLevel]);
 
   // streamActive 상태가 변경될 때 스트림 재시작
   useEffect(() => {
@@ -497,6 +509,27 @@ export default function CameraPage() {
       return () => clearTimeout(timer);
     }
   }, [streamActive]);
+
+  // 카메라가 초기화된 후 5초 이내에 화면이 보이지 않으면 자동으로 카메라 전환
+  useEffect(() => {
+    if (cameraPermission && availableCameras.length > 1) {
+      const timer = setTimeout(() => {
+        // 자동 카메라 전환 시도
+        if (webcamRef.current && webcamRef.current.video) {
+          const videoElement = webcamRef.current.video;
+          
+          // 비디오 요소의 readyState가 0이면 데이터를 받지 못하고 있는 상태
+          // 또는 비디오 요소의 videoWidth가 0이면 영상이 표시되지 않는 상태
+          if (videoElement.readyState === 0 || videoElement.videoWidth === 0) {
+            console.log('카메라가 제대로 작동하지 않아 자동 전환을 시도합니다');
+            switchCamera();
+          }
+        }
+      }, 5000); // 5초 후 확인
+      
+      return () => clearTimeout(timer);
+    }
+  }, [cameraPermission, availableCameras.length, selectedCamera]);
 
   // 줌 레벨 조정 함수
   const handleZoomIn = () => {
@@ -551,25 +584,26 @@ export default function CameraPage() {
         // 비디오 프레임을 캔버스에 그리기
         context.drawImage(video, 0, 0, videoWidth, videoHeight);
         
-        // 가이드라인에 맞추어 명함 영역 계산
+        // 프레임 가이드라인과 일치하는 명함 영역 계산
         let cropWidth, cropHeight, cropX, cropY;
         
         // 명함 비율 조정 (가로형/세로형)
         const cardRatio = isVerticalCard ? 1.7 : 0.55; // 세로형 비율: 높이/너비=1.7, 가로형 비율: 높이/너비=0.55
         
+        // 가이드라인 영역과 일치하도록 계산
         if (isVerticalCard) {
-          // 세로형 명함 (세로 길이가 더 김)
-          cropWidth = Math.min(videoWidth * 0.6, videoHeight / cardRatio * 0.8);
+          // 세로형 명함 (세로 길이가 더 김) - 가이드 비율과 일치하도록 55% 너비 사용
+          cropWidth = videoWidth * 0.55;
           cropHeight = cropWidth * cardRatio;
         } else {
-          // 가로형 명함 (가로 길이가 더 김)
-          cropWidth = Math.min(videoWidth * 0.85, videoHeight / cardRatio * 0.8);
+          // 가로형 명함 (가로 길이가 더 김) - 가이드 비율과 일치하도록 85% 너비 사용
+          cropWidth = videoWidth * 0.85;
           cropHeight = cropWidth * cardRatio;
         }
         
-        // 중앙 위치 계산 - 세로 위치를 약간 위로 조정 (화면 중앙보다 약간 위에 크롭)
+        // 중앙 위치 계산 - 가이드라인 위치와 동일하게 맞춤 (중앙 정렬)
         cropX = (videoWidth - cropWidth) / 2;
-        cropY = (videoHeight - cropHeight) / 2 - videoHeight * 0.05; // 5% 위로 이동
+        cropY = (videoHeight - cropHeight) / 2;
         
         // 크롭 좌표가 캔버스를 벗어나지 않도록 보정
         cropX = Math.max(0, cropX);
@@ -775,6 +809,7 @@ export default function CameraPage() {
                 </p>
                 <p><strong>인식 팁:</strong> 후면 카메라가 명함 인식에 더 효과적입니다.</p>
                 <p><strong>화질이 좋지 않나요?</strong> 다른 카메라로 전환해 보세요.</p>
+                <p><strong>화면이 검은색인가요?</strong> <button onClick={switchCamera} className={styles.linkButton}>카메라 전환</button>을 눌러보세요.</p>
               </div>
             </div>
           )}
@@ -819,10 +854,25 @@ export default function CameraPage() {
               screenshotFormat="image/jpeg"
               className={styles.webcam}
               videoConstraints={{
-                deviceId: selectedCamera,
-                facingMode: selectedCamera ? undefined : "environment", // 모바일에서 후면 카메라 사용
+                deviceId: selectedCamera ? { exact: selectedCamera } : undefined,
+                facingMode: selectedCamera ? undefined : currentFacingMode,
                 width: { ideal: 1920 },
                 height: { ideal: 1080 }
+              }}
+              forceScreenshotSourceSize={true}
+              onUserMedia={(stream) => {
+                console.log('카메라 스트림이 성공적으로 연결되었습니다');
+                // 스트림이 연결되면 비디오 요소에 대한 참조 업데이트
+                if (webcamRef.current && webcamRef.current.video) {
+                  videoRef.current = webcamRef.current.video;
+                }
+              }}
+              onUserMediaError={(error) => {
+                console.error('카메라 스트림 연결 중 오류:', error);
+                // 다른 카메라로 전환 시도
+                if (availableCameras.length > 1) {
+                  setTimeout(() => switchCamera(), 1000);
+                }
               }}
               style={{
                 transform: `scale(${zoomLevel})`,
@@ -861,7 +911,10 @@ export default function CameraPage() {
                 className={styles.cardGuideInner}
                 style={{
                   width: isVerticalCard ? '55%' : '85%',
-                  height: isVerticalCard ? '85%' : '53%',
+                  height: isVerticalCard ? '93.5%' : '46.75%',
+                  borderColor: 'rgba(255, 255, 255, 0.8)',
+                  borderWidth: '2px',
+                  borderStyle: 'dashed'
                 }}
               ></div>
             </div>
@@ -884,31 +937,51 @@ export default function CameraPage() {
           </div>
           
           <div className={styles.controlsContainer}>
-            <div className={styles.zoomControls}>
+            <div className={styles.captureContainer}>
               <button 
-                onClick={handleZoomOut} 
-                className={styles.zoomButton}
-                disabled={zoomLevel <= 1}
+                onClick={captureImage} 
+                className={styles.captureButton}
+                disabled={isCapturing}
               >
-                -
-              </button>
-              <span className={styles.zoomLevel}>{zoomLevel.toFixed(1)}x</span>
-              <button 
-                onClick={handleZoomIn} 
-                className={styles.zoomButton}
-                disabled={zoomLevel >= 4}
-              >
-                +
+                {isCapturing ? '처리 중...' : '촬영'}
               </button>
             </div>
             
-            <button 
-              onClick={captureImage} 
-              disabled={isCapturing || processingImage}
-              className={styles.captureButton}
-            >
-              {isCapturing || processingImage ? '처리 중...' : '촬영하기'}
-            </button>
+            <div className={styles.controlOptions}>
+              <div className={styles.zoomControls}>
+                <button onClick={handleZoomOut} className={styles.zoomButton}>-</button>
+                <div className={styles.zoomLevel}>{zoomLevel.toFixed(1)}x</div>
+                <button onClick={handleZoomIn} className={styles.zoomButton}>+</button>
+              </div>
+              
+              {availableCameras.length > 1 && (
+                <button 
+                  onClick={switchCamera} 
+                  className={styles.cameraSwitch}
+                  title="카메라 전환"
+                >
+                  <span className={styles.cameraSwitchIcon}>🔄</span>
+                </button>
+              )}
+              
+              {flashAvailable && (
+                <button 
+                  onClick={toggleFlash} 
+                  className={styles.flashButton}
+                  title={flashMode === 'off' ? '플래시 켜기' : '플래시 끄기'}
+                >
+                  {flashMode === 'off' ? '💡' : '🔦'}
+                </button>
+              )}
+              
+              <button 
+                onClick={() => setIsVerticalCard(!isVerticalCard)} 
+                className={styles.rotateButton}
+                title={isVerticalCard ? '가로 명함으로 전환' : '세로 명함으로 전환'}
+              >
+                {isVerticalCard ? '↔️' : '↕️'}
+              </button>
+            </div>
           </div>
           
           <div className={styles.instructions}>
@@ -928,7 +1001,35 @@ export default function CameraPage() {
       ) : (
         <div className={styles.resultContainer}>
           <div className={styles.imagePreview}>
-            <img src={capturedImage} alt="Captured business card" />
+            {capturedImage && (
+              <div className={styles.capturedImageContainer}>
+                <Image 
+                  src={capturedImage} 
+                  alt="Captured business card"
+                  className={styles.capturedImage}
+                  width={500}
+                  height={300}
+                  unoptimized
+                />
+                
+                <div className={styles.capturedActions}>
+                  <button 
+                    onClick={retakePhoto} 
+                    className={styles.retakeButton}
+                  >
+                    다시 촬영
+                  </button>
+                  
+                  <button 
+                    onClick={handleSaveAndSend} 
+                    className={styles.sendButton}
+                    disabled={processingImage}
+                  >
+                    {processingImage ? '처리 중...' : '저장 후 메시지 작성'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           
           <div className={styles.extractedInfo}>

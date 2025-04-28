@@ -89,8 +89,8 @@
 
 .cardGuideInner {
   width: 85%;
-  height: 53%;
-  border: 2px dashed rgba(255, 255, 255, 0.7);
+  height: 46.75%;
+  border: 2px dashed rgba(255, 255, 255, 0.8);
   border-radius: 10px;
   box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.3);
 }
@@ -422,4 +422,18 @@
 
 .flashButton:hover {
   background-color: rgba(0, 0, 0, 0.8);
+}
+
+.linkButton {
+  background: none;
+  border: none;
+  color: #4285f4;
+  cursor: pointer;
+  font-weight: bold;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.linkButton:hover {
+  color: #356ac3;
 } 

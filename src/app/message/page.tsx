@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -8,7 +8,18 @@ import styles from './message.module.css';
 
 export default function MessagePage() {
   const router = useRouter();
-  const [cardData, setCardData] = useState<any>(null);
+  const [cardData, setCardData] = useState<{
+    image: string;
+    name: string;
+    position: string;
+    company: string;
+    phone: string;
+    mobile: string;
+    email: string;
+    address: string;
+    website: string;
+    other: string;
+  } | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [messageContent, setMessageContent] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -292,7 +303,18 @@ export default function MessagePage() {
     }
   };
 
-  const createVCard = (contact: any) => {
+  const createVCard = (contact: {
+    name?: string;
+    position?: string;
+    company?: string;
+    phone?: string;
+    mobile?: string;
+    email?: string;
+    address?: string;
+    website?: string;
+    other?: string;
+    note?: string;
+  }) => {
     // vCard 형식으로 데이터 구성
     let vcard = 'BEGIN:VCARD\r\nVERSION:3.0\r\n';
     
@@ -371,10 +393,13 @@ export default function MessagePage() {
           <div className={styles.cardInfo}>
             <div className={styles.imageContainer}>
               {cardData.image && (
-                <img 
+                <Image 
                   src={cardData.image} 
                   alt="Captured business card" 
                   className={styles.cardImage}
+                  width={300}
+                  height={200}
+                  unoptimized
                 />
               )}
             </div>

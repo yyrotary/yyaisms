@@ -116,7 +116,7 @@ export async function extractBusinessCardInfo(
     console.log('Gemini API 응답 텍스트:', text);
     
     // JSON 추출 (텍스트에서 JSON 부분만 파싱)
-    let jsonMatch = text.match(/\{[\s\S]*\}/);
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.error('JSON 형식 응답을 찾을 수 없습니다. 전체 응답:', text);
       throw new Error('Gemini 응답에서 JSON을 찾을 수 없습니다');
