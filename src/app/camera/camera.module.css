@@ -1,0 +1,425 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  min-height: 100vh;
+  background-color: #f9f9f9;
+}
+
+.title {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: #333;
+  text-align: center;
+}
+
+.cameraContainer {
+  width: 100%;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: white;
+  border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.cameraSelect {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.selectCamera {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+  background-color: white;
+}
+
+.cameraInfo {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: rgba(240, 240, 240, 0.9);
+  font-size: 0.9rem;
+  color: #333;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.cameraInfo p {
+  margin: 5px 0;
+  line-height: 1.4;
+}
+
+.cameraInfo strong {
+  color: #0066cc;
+}
+
+.webcamWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4/3;
+  overflow: hidden;
+  border-radius: 8px;
+  background-color: #000;
+  margin-bottom: 1rem;
+}
+
+.webcam {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.cardGuide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+.cardGuideInner {
+  width: 85%;
+  height: 53%;
+  border: 2px dashed rgba(255, 255, 255, 0.7);
+  border-radius: 10px;
+  box-shadow: 0 0 0 1000px rgba(0, 0, 0, 0.3);
+}
+
+.optionsContainer {
+  width: 100%;
+  margin-bottom: 0.8rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.8rem;
+}
+
+.cardOrientationToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1rem;
+  background-color: #f5f5f5;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s;
+}
+
+.cardOrientationToggle:hover {
+  background-color: #e0e0e0;
+}
+
+.cardOrientationToggle label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.cardOrientationToggle input {
+  margin-right: 0.5rem;
+  transform: scale(1.1);
+}
+
+.error {
+  margin: 1rem 0;
+  padding: 0.8rem;
+  background-color: #ffebee;
+  color: #d32f2f;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  border-left: 4px solid #d32f2f;
+  text-align: center;
+}
+
+.focusIndicator {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: focusPulse 1s ease-out;
+  z-index: 10;
+}
+
+@keyframes focusPulse {
+  0% {
+    width: 50px;
+    height: 50px;
+    opacity: 0.8;
+    border-width: 3px;
+  }
+  70% {
+    width: 70px;
+    height: 70px;
+    opacity: 0.5;
+    border-width: 2px;
+  }
+  100% {
+    width: 70px;
+    height: 70px;
+    opacity: 0;
+    border-width: 1px;
+  }
+}
+
+.touchInstruction {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+  padding: 5px;
+  pointer-events: none;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.controlsContainer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.zoomControls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.zoomButton {
+  width: 40px;
+  height: 40px;
+  font-size: 1.5rem;
+  border-radius: 50%;
+  border: none;
+  background-color: #f0f0f0;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.zoomButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.zoomButton:hover:not(:disabled) {
+  background-color: #e0e0e0;
+}
+
+.zoomLevel {
+  font-size: 1rem;
+  font-weight: bold;
+  min-width: 40px;
+  text-align: center;
+}
+
+.captureButton {
+  width: 80%;
+  padding: 0.8rem;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.captureButton:hover {
+  background-color: #43a047;
+}
+
+.instructions {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #f5f5f5;
+  border-radius: 5px;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.instructions p {
+  margin: 0.5rem 0;
+}
+
+.resultContainer {
+  width: 100%;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.imagePreview {
+  width: 100%;
+  margin-bottom: 1.5rem;
+}
+
+.imagePreview img {
+  width: 100%;
+  border-radius: 5px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.extractedInfo {
+  width: 100%;
+}
+
+.formGroup {
+  margin-bottom: 1rem;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-weight: 500;
+  color: #555;
+}
+
+.formGroup input,
+.formGroup textarea {
+  width: 100%;
+  padding: 0.7rem;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+.formGroup textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.errorMessage {
+  color: #d32f2f;
+  margin: 1rem 0;
+  padding: 0.5rem;
+  background-color: #ffebee;
+  border-radius: 5px;
+  font-size: 0.9rem;
+}
+
+.buttonGroup {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+  gap: 1rem;
+}
+
+.retakeButton,
+.saveButton {
+  flex: 1;
+  padding: 0.8rem;
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.retakeButton {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.retakeButton:hover {
+  background-color: #e0e0e0;
+}
+
+.saveButton {
+  background-color: #2196f3;
+  color: white;
+}
+
+.saveButton:hover {
+  background-color: #1976d2;
+}
+
+.saveButton:disabled,
+.retakeButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.backButton {
+  margin-top: 2rem;
+  text-decoration: none;
+  color: #666;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+}
+
+.backButton:hover {
+  color: #2196f3;
+  text-decoration: underline;
+}
+
+/* 반응형 스타일 */
+@media (max-width: 600px) {
+  .main {
+    padding: 1rem;
+  }
+  
+  .title {
+    font-size: 1.3rem;
+  }
+  
+  .cameraContainer,
+  .resultContainer {
+    padding: 1rem;
+  }
+  
+  .captureButton {
+    width: 100%;
+  }
+}
+
+.flashButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: background-color 0.2s;
+}
+
+.flashButton:hover {
+  background-color: rgba(0, 0, 0, 0.8);
+} 
